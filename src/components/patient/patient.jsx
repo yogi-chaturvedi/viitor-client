@@ -15,17 +15,19 @@ import InputLabel from "@material-ui/core/InputLabel";
 import Select from "@material-ui/core/Select";
 import Button from "@material-ui/core/Button";
 import {useHistory, useParams} from "react-router";
+import WithLoader from "../hoc/WithLoader";
+
+const ButtonWithLoader = WithLoader(Button);
 
 const useStyles = makeStyles((theme) => ({
     root: {
-        height: '100vh',
         display: "flex",
         margin:"auto",
         flexDirection: 'column',
         alignItems: 'center',
     },
     paper: {
-        margin: theme.spacing(8, 4),
+        margin: theme.spacing(6, 4),
         display: 'flex',
     },
     avatar: {
@@ -68,6 +70,7 @@ export const Patient = (props) => {
     const [countries, setCountries] = useState([]);
     const [states, setStates] = useState([]);
     const [cities, setCities] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         let current = true;
@@ -170,26 +173,31 @@ export const Patient = (props) => {
         } else if (patient.password.length < 6) {
             errors.password = "Password must be at least 6 characters";
         }
-        return {};
+        return errors;
     };
 
     const onSubmit = (event) => {
         handleSubmit(event);
-        console.log(errors);
+        if(!_.isEmpty(errors)){
+            toast.error('Form has some errors');
+            return;
+        }
         if (_.isEmpty(errors)) {
             let response;
-            if(patientId) {
+            if (patientId) {
                 response = patientService.update(patientId, patient);
             } else {
-               response =  patientService.create(patient)
+                response = patientService.create(patient)
             }
-                response.then((data) => {
-                    history.push("/app/dashboard");
-                    toast.success("Patient created successfully")
-                })
-                .catch((error) => {
-                    toast.error(error.message);
-                });
+            setLoading(true);
+            response.then((data) => {
+                history.push("/app/dashboard");
+                toast.success("Patient created successfully")
+                setLoading(false);
+            }).catch((error) => {
+                toast.error(error.message);
+                setLoading(false);
+            });
         }
     };
 
@@ -299,7 +307,19 @@ export const Patient = (props) => {
                             </FormControl>
                         </Grid>
                     </Grid>
-
+                    <Grid lg={12} item>
+                        <TextField
+                            variant="outlined"
+                            required
+                            fullWidth
+                            id="diagnoseWith"
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            value={patient.diagnoseWith}
+                            label="Diagnose with"
+                            name="diagnoseWith"
+                        />
+                    </Grid>
                     <Grid item xs={12} sm={12}>
                         <FormControl  variant="outlined" fullWidth required>
                             <InputLabel id="demo-customized-select-label">Country</InputLabel>
@@ -378,7 +398,8 @@ export const Patient = (props) => {
                             </Select>
                         </FormControl>
                     </Grid>
-                    <Button
+                    <ButtonWithLoader
+                        loading={loading}
                         type="button"
                         fullWidth
                         style={{height: 40, marginTop:20}}
@@ -386,7 +407,7 @@ export const Patient = (props) => {
                         onClick={onSubmit}
                         color="primary">
                         { patientId ?  "Update" : "Create"}
-                    </Button>
+                    </ButtonWithLoader>
                 </form>
             </div>
         </Grid>

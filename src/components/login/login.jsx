@@ -13,6 +13,9 @@ import loginService from '../../services/login.service';
 import {toast} from "react-toastify";
 import _ from "lodash";
 import "../../index.scss";
+import WithLoader from "../hoc/WithLoader";
+
+const ButtonWithLoader = WithLoader(Button);
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -66,7 +69,7 @@ export const Login = () => {
     const handleChange = (event) => {
         const newValues = {
             ...values,
-            [event.target.name]: event.target.type === "checkbox" ? event.target.checked : event.target.value
+            [event.target.name]: event.target.value
         };
         setValues(newValues);
         console.log("New Values", newValues)
@@ -166,7 +169,8 @@ export const Login = () => {
                             autoComplete="current-password"
                         />
                         {errors.password && <div className="field-error">{errors.password}</div>}
-                        <Button
+                        <ButtonWithLoader
+                            loading={loading}
                             type="button"
                             fullWidth
                             variant="contained"
@@ -174,7 +178,7 @@ export const Login = () => {
                             disabled={isSubmitting}
                             color="primary">
                             Sign In
-                        </Button>
+                        </ButtonWithLoader>
                         <Link to="/signup" variant="body2">
                             {"Don't have an account?"}
                         </Link>

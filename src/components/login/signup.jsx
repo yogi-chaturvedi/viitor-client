@@ -14,6 +14,10 @@ import _ from "lodash";
 import "../../index.scss";
 import {toast} from 'react-toastify';
 import {FormDropDown, FormPassword, FormTextField} from "./fields";
+import WithLoader from "../hoc/WithLoader";
+
+const ButtonWithLoader = WithLoader(Button);
+const GridWithLoader = WithLoader(Grid);
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -51,10 +55,14 @@ export const SignUp = () => {
     const [errors, setErrors] = useState({});
     const [dropDowns, setDropDowns] = useState({});
     const [schema, setSchema] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
+        setLoading(true);
         commonService.getUserSchema()
             .then(data => {
+                setLoading(false);
                 console.log("schema", data);
                 setSchema(data.data);
                 _.forEach(data.data, field => {
@@ -69,6 +77,7 @@ export const SignUp = () => {
             })
             .catch(error => {
                 console.log("Error in fetching schema", error)
+                setLoading(false);
             })
     }, []);
 
@@ -134,13 +143,15 @@ export const SignUp = () => {
             schema.forEach(field => {
                 payload[field.id] = values[field.id];
             });
-
+            setSubmitting(true);
             loginService.signUp(payload)
                 .then(() => {
+                    setSubmitting(false);
                     toast.success("Signup successfully");
                     history.push("/");
                 })
                 .catch((error) => {
+                    setSubmitting(false);
                     console.log("Error in signing up", error);
                 })
         } else {
@@ -182,7 +193,7 @@ export const SignUp = () => {
                         Sign up
                     </Typography>
                     <form className={classes.form} onSubmit={onSubmit} noValidate>
-                        <Grid container spacing={2}>
+                        <GridWithLoader container spacing={2} loading={loading}>
                             {
                                 schema.map((field) => {
                                     if (field.type === "text") {
@@ -211,16 +222,17 @@ export const SignUp = () => {
                                 })
                             }
                             <Grid xs={6} sm={6} md={6} item>
-                                <Button
+                                <ButtonWithLoader
+                                    loading={submitting}
                                     type="submit"
                                     fullWidth
                                     variant="contained"
                                     color="primary"
                                     className={classes.submit}>
                                     Sign Up
-                                </Button>
+                                </ButtonWithLoader>
                             </Grid>
-                        </Grid>
+                        </GridWithLoader>
                         <Grid container justify="flex-end">
                             <Grid xs={12} sm={6} md={6} item style={{textAlign: "right"}}>
                                 <Link to="/" variant="body2">Already have an account?</Link>
