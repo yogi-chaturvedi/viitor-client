@@ -82,7 +82,7 @@ const Nav = (props) => {
     const [value, setValue] = React.useState(0);
     const tabs = [
         {label: "Home", route: "app/dashboard"},
-        {label: "Patient", route: "app/patient"}
+        {label: "Create Patient", route: "app/patient"}
     ]
     return <Grid>
         <StyledTabs

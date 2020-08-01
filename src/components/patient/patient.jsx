@@ -1,21 +1,20 @@
 import React, {useEffect, useState} from "react";
 import TextField from "@material-ui/core/TextField/TextField";
-import {Box} from "@material-ui/core";
 import Paper from "@material-ui/core/Paper";
 import _ from "lodash";
-import loginService from "../../services/login.service";
 import {toast} from "react-toastify";
 import {makeStyles} from "@material-ui/core/styles";
 import Grid from "@material-ui/core/Grid";
 import CssBaseline from "@material-ui/core/CssBaseline/CssBaseline";
 import Typography from "@material-ui/core/Typography";
 import commonService from "../../services/common.service";
+import patientService from "../../services/patient.service";
 import MenuItem from "@material-ui/core/MenuItem";
 import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
 import Select from "@material-ui/core/Select";
 import Button from "@material-ui/core/Button";
-import {useHistory} from "react-router";
+import {useHistory, useParams} from "react-router";
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -34,7 +33,7 @@ const useStyles = makeStyles((theme) => ({
         backgroundColor: theme.palette.secondary.main,
     },
     form: {
-        width: '100%', // Fix IE 11 issue.
+        width: '100%',
         marginTop: theme.spacing(1),
     },
     submit: {
@@ -56,9 +55,13 @@ const initialState = {
     city: ""
 };
 
-export const Patient = () => {
+export const Patient = (props) => {
     const classes = useStyles();
     const history = useHistory();
+    const { match } = props;
+
+    let {id: patientId} =  useParams();;
+    console.log(patientId);
 
     const [patient, setPatient] = useState(initialState)
     const [errors, setErrors] = useState(initialState)
@@ -80,6 +83,13 @@ export const Patient = () => {
         return () => {
             current = false;
         }
+    }, []);
+
+    useEffect(() => {
+        patientService.get(patientId)
+            .then((resp) => {
+                setPatient(resp.data);
+            })
     }, []);
 
     useEffect(() => {
@@ -167,8 +177,13 @@ export const Patient = () => {
         handleSubmit(event);
         console.log(errors);
         if (_.isEmpty(errors)) {
-            commonService.savePatient(patient)
-                .then((data) => {
+            let response;
+            if(patientId) {
+                response = patientService.update(patientId, patient);
+            } else {
+               response =  patientService.create(patient)
+            }
+                response.then((data) => {
                     history.push("/app/dashboard");
                     toast.success("Patient created successfully")
                 })
@@ -185,7 +200,7 @@ export const Patient = () => {
 
                 <form className={classes.form} onSubmit={onSubmit} noValidate>
                     <Typography component="h1" variant="h5" style={{marginBottom: 10}}>
-                        Create patient
+                        { patientId ?  "Update" : "Create"} patient
                     </Typography>
                     <Grid container spacing={2}>
                         <Grid item xs={6}>
@@ -248,6 +263,7 @@ export const Patient = () => {
                                 required
                                 fullWidth
                                 id="age"
+                                shrink={true}
                                 type="number"
                                 onChange={handleChange}
                                 onBlur={handleBlur}
@@ -369,7 +385,7 @@ export const Patient = () => {
                         variant="contained"
                         onClick={onSubmit}
                         color="primary">
-                        Create
+                        { patientId ?  "Update" : "Create"}
                     </Button>
                 </form>
             </div>

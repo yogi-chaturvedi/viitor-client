@@ -32,7 +32,8 @@ const App = (props) => {
 				</Hidden>
 				<section className={classes.body}>
 					<PrivateRoute path={`${props.match.path}/dashboard`} component={Dashboard} />
-					<PrivateRoute path={`${props.match.path}/patient`} component={Patient} />
+					<PrivateRoute exact path={`${props.match.path}/patient`} component={Patient} />
+					<PrivateRoute exact path={`${props.match.path}/patient/:id`} component={Patient} />
 				</section>
 			</div>
 		</>

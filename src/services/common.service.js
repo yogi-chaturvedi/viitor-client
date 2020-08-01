@@ -32,6 +32,14 @@ class CommonService {
 	savePatient = (payload) => {
 		return this.axios.post(`/patients`, payload);
 	}
+
+	getPatient(id) {
+		return this.axios.get(`/patients/` + id);
+	}
+
+	updatePatient(patientId, payload) {
+		return this.axios.put(`/patients/` + patientId, payload);
+	}
 }
 
 export default new CommonService();
