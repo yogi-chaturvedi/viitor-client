@@ -138,7 +138,7 @@ export default function Dashboard() {
         // Sorting
         const mode = filter.ascending ? "asc" : "desc";
         filteredData = _.orderBy(filteredData, [item => {
-            return item[filter.sortBy].toLowerCase();
+            return item[filter.sortBy].toString().toLowerCase();
         }], [mode]);
 
         // Pagination
