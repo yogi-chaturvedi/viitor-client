@@ -25,6 +25,9 @@ import IconButton from "@material-ui/core/IconButton";
 import InputBase from "@material-ui/core/InputBase";
 import {FormControl, InputLabel, MenuItem, Select} from "@material-ui/core";
 import Button from "@material-ui/core/Button";
+import WithLoader from "../hoc/WithLoader";
+
+const TableWithLoader = WithLoader(TableContainer);
 
 const useStyles = makeStyles({
         container: {
@@ -84,7 +87,7 @@ const useStyles = makeStyles({
 ;
 
 const InitialFilter = {
-    sortBy: "name",
+    sortBy: "firstName",
     page: 1,
     query: "",
     ascending: true,
@@ -97,12 +100,15 @@ export default function Dashboard() {
 
     const [patients, setPatients] = useState([]);
     const [filter, setFilter] = useState(InitialFilter);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
+        setLoading(true);
         patientService.list()
             .then(res => {
                 console.log(res);
                 setPatients(res.data.data);
+                setLoading(false);
             })
     }, []);
 
@@ -111,9 +117,11 @@ export default function Dashboard() {
     };
 
     const deletePatient = (id) => {
+        setLoading(true);
         patientService.remove(id).then(res => {
             const remainingPatients = _.filter(patients, p => p.id !== id);
             setPatients(remainingPatients);
+            setLoading(false);
         })
     };
 
@@ -126,12 +134,13 @@ export default function Dashboard() {
                 _.includes(row.email.toUpperCase(), filter.query.toUpperCase())
             );
         });
+
         // Sorting
-        filteredData = _.sortBy(filteredData, filter.sortBy);
-        // Sorting direction
-        if (filter.ascending) {
-            filteredData = _.reverse(filteredData);
-        }
+        const mode = filter.ascending ? "asc" : "desc";
+        filteredData = _.orderBy(filteredData, [item => {
+            return item[filter.sortBy].toLowerCase();
+        }], [mode]);
+
         // Pagination
         filteredData = _.chunk(filteredData, filter.itemsPerPage)[filter.page - 1];
         return filteredData || [];
@@ -159,7 +168,6 @@ export default function Dashboard() {
 
     const searchChange = ({target: {value}}) => {
         setFilter({...filter, query: value});
-        exportToCSV();
     };
 
     const onItemsPerPageChange = ({target: {value}}) => {
@@ -208,14 +216,14 @@ export default function Dashboard() {
                     </IconButton>
                 </div>
             </Toolbar>
-            <TableContainer>
+            <TableWithLoader loading={loading}>
                 <Table className={classes.table} aria-label="simple table">
                     <TableHead>
                         <TableRow>
                             <TableCell align="right">Action</TableCell>
                             <FilterableCell title={"Name"}
                                             onClick={() => {
-                                                sort("name")
+                                                sort("firstName")
                                             }}
                                             ascending={filter.sortBy === "name" ? filter.ascending : false}
                             />
@@ -255,7 +263,7 @@ export default function Dashboard() {
                         ))}
                     </TableBody>
                 </Table>
-            </TableContainer>
+            </TableWithLoader>
             <div className={classes.rootPaginationContainer}>
                 <Button variant="contained" color="primary" onClick={exportToCSV} className={classes.exportButton}>
                     Export to CSV
