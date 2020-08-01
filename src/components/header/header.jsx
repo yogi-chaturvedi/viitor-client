@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {Grid, makeStyles, Tab, Tabs, withStyles} from '@material-ui/core';
 import AppBar from '@material-ui/core/AppBar';
 import CssBaseline from '@material-ui/core/CssBaseline';
@@ -7,6 +7,7 @@ import Typography from '@material-ui/core/Typography';
 import useScrollTrigger from '@material-ui/core/useScrollTrigger';
 import {useHistory} from 'react-router-dom';
 import Button from "@material-ui/core/Button";
+import _ from "lodash";
 
 function ElevationScroll(props) {
     const {children, window} = props;
@@ -77,9 +78,8 @@ const StyledTab = withStyles((theme) => ({
 }))((props) => <Tab disableRipple {...props} />);
 
 
-const Nav = (props) => {
+const Nav = ({tabIndex, changeTab}) => {
     let history = useHistory();
-    const [value, setValue] = React.useState(0);
     const tabs = [
         {label: "Home", route: "app/dashboard"},
         {label: "Create Patient", route: "app/patient"}
@@ -88,11 +88,11 @@ const Nav = (props) => {
         <StyledTabs
             onChange={(e, tabIndex) => {
                 const selectedTab = tabs[tabIndex]
-                setValue(tabIndex);
+                changeTab(tabIndex);
                 history.push(`/${selectedTab.route}`)
             }}
             variant="fullWidth"
-            value={value}
+            value={tabIndex}
             aria-label="Navigation Tabs">
             {
                 tabs.map((tab) => {
@@ -107,11 +107,21 @@ const Nav = (props) => {
 export default function AppHeader(props) {
     const classes = useStyles();
     const history = useHistory();
+    const [value, setValue] = React.useState(0);
 
     const logout = () => {
         localStorage.clear();
         history.push("/");
     };
+
+    useEffect(()=>{
+        console.log("history", history);
+        if(_.includes(history.location.pathname, "app/dashboard")){
+            setValue(0);
+        } else if(_.includes(history.location.pathname, "app/patient")){
+            setValue(1);
+        }
+    });
 
     return (
         <React.Fragment>
@@ -126,9 +136,9 @@ export default function AppHeader(props) {
                             }
                             alt="Logo"/>
                         <Typography className={classes.title} variant="h6" noWrap>
-                            Viitor Cloud
+                            Doctors Portal
                         </Typography>
-                        <Nav {...props}/>
+                        <Nav {...props} changeTab={setValue} tabIndex={value}/>
                         <div className={classes.logoutContainer}>
                             <Button color="primary" variant="contained" onClick={logout}>Logout</Button>
                         </div>
