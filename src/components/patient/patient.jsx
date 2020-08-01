@@ -8,7 +8,7 @@ import Grid from "@material-ui/core/Grid";
 import CssBaseline from "@material-ui/core/CssBaseline/CssBaseline";
 import Typography from "@material-ui/core/Typography";
 import commonService from "../../services/common.service";
-import patientService from "../../services/patient.service";
+import PatientService from "../../services/patient.service";
 import MenuItem from "@material-ui/core/MenuItem";
 import FormControl from "@material-ui/core/FormControl";
 import InputLabel from "@material-ui/core/InputLabel";
@@ -61,7 +61,7 @@ export const Patient = (props) => {
     const classes = useStyles();
     const history = useHistory();
     const { match } = props;
-
+    const patientService = new PatientService();
     let {id: patientId} =  useParams();;
     console.log(patientId);
 
@@ -82,7 +82,7 @@ export const Patient = (props) => {
                 setCountries(countries);
             })
             .catch((error) => {
-            })
+            });
         return () => {
             current = false;
         }

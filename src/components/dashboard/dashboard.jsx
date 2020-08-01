@@ -19,13 +19,14 @@ import {
     Search as SearchIcon
 } from '@material-ui/icons';
 import {useHistory} from "react-router";
-import patientService from "../../services/patient.service";
+import PatientService from "../../services/patient.service";
 import _ from "lodash";
 import IconButton from "@material-ui/core/IconButton";
 import InputBase from "@material-ui/core/InputBase";
 import {FormControl, InputLabel, MenuItem, Select} from "@material-ui/core";
 import Button from "@material-ui/core/Button";
 import WithLoader from "../hoc/WithLoader";
+import {toast} from "react-toastify";
 
 const TableWithLoader = WithLoader(TableContainer);
 
@@ -95,6 +96,8 @@ const InitialFilter = {
 };
 
 export default function Dashboard() {
+    const patientService = new PatientService();
+
     const classes = useStyles();
     const history = useHistory();
 
@@ -109,7 +112,10 @@ export default function Dashboard() {
                 console.log(res);
                 setPatients(res.data.data);
                 setLoading(false);
-            })
+            }).catch(e=>{
+                setLoading(false);
+                toast.error("Failed to fetch patient list");
+        })
     }, []);
 
     const editPatient = (id) => {

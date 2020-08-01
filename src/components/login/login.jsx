@@ -114,10 +114,10 @@ export const Login = () => {
                 password: values.password,
                 strategy: "local"
             })
-                .then(async (data) => {
-                    await localStorage.setItem("accessToken", data.accessToken);
-                    await localStorage.setItem("user", JSON.stringify(data.user));
+                .then((data) => {
                     setLoading(false);
+                    localStorage.setItem("accessToken", data.accessToken);
+                    localStorage.setItem("user", JSON.stringify(data.user));
                     history.push("/app/dashboard")
                 })
                 .catch((error) => {
