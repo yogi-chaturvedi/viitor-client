@@ -231,7 +231,7 @@ export default function Dashboard() {
                                             onClick={() => {
                                                 sort("firstName")
                                             }}
-                                            ascending={filter.sortBy === "name" ? filter.ascending : false}
+                                            ascending={filter.sortBy === "firstName" ? filter.ascending : false}
                             />
                             <FilterableCell title={"Email"}
                                             onClick={() => {
