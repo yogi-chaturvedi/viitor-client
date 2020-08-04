@@ -92,7 +92,7 @@ const InitialFilter = {
     page: 1,
     query: "",
     ascending: true,
-    itemsPerPage: 2
+    itemsPerPage: 5
 };
 
 export default function Dashboard() {
@@ -177,7 +177,7 @@ export default function Dashboard() {
     };
 
     const onItemsPerPageChange = ({target: {value}}) => {
-        setFilter({...filter, itemsPerPage: value});
+        setFilter({...filter, itemsPerPage: value, page: 1});
     };
 
     const exportToCSV = () => {
@@ -228,27 +228,28 @@ export default function Dashboard() {
                         <TableRow>
                             <TableCell align="right">Action</TableCell>
                             <FilterableCell title={"Name"}
-                                            onClick={() => {
-                                                sort("firstName")
-                                            }}
+                                            onClick={sort}
                                             field="firstName"
                                             sortBy={filter.sortBy}
                                             ascending={filter.ascending}
                             />
                             <FilterableCell title={"Email"}
-                                            onClick={() => {
-                                                sort("email")
-                                            }}
+                                            onClick={sort}
                                             field="email"
                                             sortBy={filter.sortBy}
                                             ascending={filter.ascending}
                             />
-                            <TableCell align="right">Gender</TableCell>
+                            <FilterableCell title={"Gender"}
+                                            onClick={sort}
+                                            field="gender"
+                                            sortBy={filter.sortBy}
+                                            ascending={filter.ascending}
+                            />
                             <FilterableCell title={"Age"}
-                                            onClick={() => {
-                                                sort("age")
-                                            }}
-                                            ascending={filter.sortBy === "age" ? filter.ascending : false}
+                                            onClick={sort}
+                                            field="age"
+                                            sortBy={filter.sortBy}
+                                            ascending={filter.ascending}
                             />
                             <TableCell align="right">Diagnose With</TableCell>
                             <TableCell align="right">Address</TableCell>
@@ -287,7 +288,7 @@ export default function Dashboard() {
 
 const FilterableCell = ({title, onClick, sortBy, field, ascending}) => {
     const classes = useStyles();
-    return <TableCell align="right" onClick={onClick} className={classes.clickable}>
+    return <TableCell align="right" onClick={() => onClick(field)} className={classes.clickable}>
         {title}
         {
             sortBy === field && <>
@@ -310,7 +311,7 @@ const Pagination = ({activePage, prev, next}) => {
         <ChevronRight onClick={next}/>
         </span>
     </div>
-}
+};
 
 const ItemsPerPage = ({onChange, itemsPerPage}) => {
     const classes = useStyles();
@@ -320,19 +321,13 @@ const ItemsPerPage = ({onChange, itemsPerPage}) => {
             <Select
                 labelId="itemPerPage"
                 onChange={onChange}
-                label="Items per onChange"
+                label="Items per page"
                 value={itemsPerPage}
                 name="itemsPerPage"
                 id="itemsPerPage">
-                <MenuItem value={2}>
-                    <em>2</em>
-                </MenuItem>
-                <MenuItem value={5}>
-                    <em>5</em>
-                </MenuItem>
-                <MenuItem value={10}>
-                    <em>10</em>
-                </MenuItem>
+                <MenuItem value={5}>5</MenuItem>
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={20}>20</MenuItem>
             </Select>
         </FormControl>
     </div>
