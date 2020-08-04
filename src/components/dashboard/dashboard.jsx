@@ -112,9 +112,9 @@ export default function Dashboard() {
                 console.log(res);
                 setPatients(res.data.data);
                 setLoading(false);
-            }).catch(e=>{
-                setLoading(false);
-                toast.error("Failed to fetch patient list");
+            }).catch(e => {
+            setLoading(false);
+            toast.error("Failed to fetch patient list");
         })
     }, []);
 
@@ -231,13 +231,17 @@ export default function Dashboard() {
                                             onClick={() => {
                                                 sort("firstName")
                                             }}
-                                            ascending={filter.sortBy === "firstName" ? filter.ascending : false}
+                                            field="firstName"
+                                            sortBy={filter.sortBy}
+                                            ascending={filter.ascending}
                             />
                             <FilterableCell title={"Email"}
                                             onClick={() => {
                                                 sort("email")
                                             }}
-                                            ascending={filter.sortBy === "email" ? filter.ascending : false}
+                                            field="email"
+                                            sortBy={filter.sortBy}
+                                            ascending={filter.ascending}
                             />
                             <TableCell align="right">Gender</TableCell>
                             <FilterableCell title={"Age"}
@@ -281,12 +285,16 @@ export default function Dashboard() {
     );
 }
 
-const FilterableCell = ({title, onClick, ascending}) => {
+const FilterableCell = ({title, onClick, sortBy, field, ascending}) => {
     const classes = useStyles();
     return <TableCell align="right" onClick={onClick} className={classes.clickable}>
         {title}
         {
-            ascending ? <ArrowDownward/> : <ArrowUpward/>
+            sortBy === field && <>
+                {
+                    ascending ? <ArrowUpward/> : <ArrowDownward/>
+                }
+            </>
         }
     </TableCell>
 };
