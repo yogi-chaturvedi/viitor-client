@@ -16,13 +16,14 @@ import Select from "@material-ui/core/Select";
 import Button from "@material-ui/core/Button";
 import {useHistory, useParams} from "react-router";
 import WithLoader from "../hoc/WithLoader";
+import {validate, validateField} from "./validations";
 
 const ButtonWithLoader = WithLoader(Button);
 
 const useStyles = makeStyles((theme) => ({
     root: {
         display: "flex",
-        margin:"auto",
+        margin: "auto",
         flexDirection: 'column',
         alignItems: 'center',
     },
@@ -40,6 +41,10 @@ const useStyles = makeStyles((theme) => ({
     },
     submit: {
         margin: theme.spacing(3, 0, 2),
+    },
+    error: {
+        fontSize: 11,
+        color: "#FF0000"
     }
 }));
 
@@ -57,51 +62,47 @@ const initialState = {
     city: ""
 };
 
-export const Patient = (props) => {
+export const Patient = () => {
     const classes = useStyles();
     const history = useHistory();
-    const { match } = props;
     const patientService = new PatientService();
-    let {id: patientId} =  useParams();;
-    console.log(patientId);
+    let {id: patientId} = useParams();
 
-    const [patient, setPatient] = useState(initialState)
-    const [errors, setErrors] = useState(initialState)
+    const [patient, setPatient] = useState(initialState);
+    const [errors, setErrors] = useState(initialState);
+    const [valid, setValid] = useState(false);
     const [countries, setCountries] = useState([]);
     const [states, setStates] = useState([]);
     const [cities, setCities] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        let current = true;
         commonService.getCountries()
             .then((response) => {
                 let countries = response.data.map((country) => {
-                    return { id: country, name: country, label: country };
-                })
+                    return {id: country, name: country, label: country};
+                });
                 setCountries(countries);
             })
             .catch((error) => {
             });
-        return () => {
-            current = false;
+    }, []);
+
+    useEffect(() => {
+        if (patientId) {
+            patientService.get(patientId)
+                .then((resp) => {
+                    setPatient(resp.data);
+                })
         }
     }, []);
 
     useEffect(() => {
-        patientService.get(patientId)
-            .then((resp) => {
-                setPatient(resp.data);
-            })
-    }, []);
-
-    useEffect(() => {
-        let current = true;
         if (patient.country) {
             commonService.getStates(patient.country)
                 .then((response) => {
                     let states = response.data.map((state) => {
-                        return { id: state, name: state, label: state };
+                        return {id: state, name: state, label: state};
                     })
                     setStates(states);
                 })
@@ -112,30 +113,23 @@ export const Patient = (props) => {
             setStates([]);
             setCities([]);
         }
-        return () => {
-            current = false;
-        }
     }, [patient.country]);
 
     useEffect(() => {
-        let current = true;
         if (patient.state) {
             commonService.getCities(patient.state, patient.country)
                 .then((response) => {
                     let cities = response.data.map((city) => {
-                        return { id: city, name: city, label: city };
-                    })
+                        return {id: city, name: city, label: city};
+                    });
                     setCities(cities);
                 })
                 .catch((error) => {
-
+                    toast.error(error.message);
                 })
 
         } else {
             setCities([]);
-        }
-        return () => {
-            current = false;
         }
     }, [patient.state]);
 
@@ -146,58 +140,32 @@ export const Patient = (props) => {
         };
         setPatient(newValues);
         console.log("New patient", newValues)
-    }
-
-    const handleBlur = () => {
-        const validationErrors = validate(patient);
-        setErrors(validationErrors);
-    }
-
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        const validationErrors = validate(patient);
-        setErrors(validationErrors);
-    }
-
-    const validate = () => {
-        let errors = {};
-        // Email Errors
-        if (!patient.email) {
-            errors.email = "Required Email";
-        } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(patient.email)) {
-            errors.email = "Invalid email address";
-        }
-        // Password Errors
-        if (!patient.password) {
-            errors.password = "Required Password";
-        } else if (patient.password.length < 6) {
-            errors.password = "Password must be at least 6 characters";
-        }
-        return errors;
     };
 
-    const onSubmit = (event) => {
-        handleSubmit(event);
-        if(!_.isEmpty(errors)){
-            toast.error('Form has some errors');
-            return;
-        }
-        if (_.isEmpty(errors)) {
+    const handleBlur = ({target: {name}}) => {
+        setErrors({...errors, [name]: validateField(patient, name)});
+    };
+
+    const onSubmit = () => {
+        const validationErrors = validate(patient);
+        if (_.isEmpty(validationErrors)) {
             let response;
             if (patientId) {
                 response = patientService.update(patientId, patient);
             } else {
-                response = patientService.create(patient)
+                response = patientService.create(patient);
             }
             setLoading(true);
             response.then((data) => {
                 history.push("/app/dashboard");
-                toast.success("Patient created successfully")
+                toast.success("Patient created successfully");
                 setLoading(false);
             }).catch((error) => {
                 toast.error(error.message);
                 setLoading(false);
             });
+        } else {
+            setErrors(validationErrors);
         }
     };
 
@@ -208,7 +176,7 @@ export const Patient = (props) => {
 
                 <form className={classes.form} onSubmit={onSubmit} noValidate>
                     <Typography component="h1" variant="h5" style={{marginBottom: 10}}>
-                        { patientId ?  "Update" : "Create"} patient
+                        {patientId ? "Update" : "Create"} patient
                     </Typography>
                     <Grid container spacing={2}>
                         <Grid item xs={6}>
@@ -217,12 +185,12 @@ export const Patient = (props) => {
                                 required
                                 id="firstName"
                                 onChange={handleChange}
-                                fullWidth
                                 onBlur={handleBlur}
                                 value={patient.firstName}
                                 label="First Name"
                                 name="firstName"
                             />
+                            {<div className={classes.error}>{errors.firstName}</div>}
                         </Grid>
                         <Grid lg={6} item>
                             <TextField
@@ -236,6 +204,7 @@ export const Patient = (props) => {
                                 label="Last Name"
                                 name="lastName"
                             />
+                            {<div className={classes.error}>{errors.lastName}</div>}
                         </Grid>
                     </Grid>
                     <Grid lg={12} item>
@@ -250,6 +219,7 @@ export const Patient = (props) => {
                             label="Email"
                             name="email"
                         />
+                        {<div className={classes.error}>{errors.email}</div>}
                     </Grid>
                     <Grid lg={12} item>
                         <TextField
@@ -263,6 +233,7 @@ export const Patient = (props) => {
                             label="Contact"
                             name="contact"
                         />
+                        {<div className={classes.error}>{errors.contact}</div>}
                     </Grid>
                     <Grid container spacing={2}>
                         <Grid item xs={6}>
@@ -279,9 +250,10 @@ export const Patient = (props) => {
                                 label="Age"
                                 name="age"
                             />
+                            {<div className={classes.error}>{errors.age}</div>}
                         </Grid>
                         <Grid item xs={6}>
-                            <FormControl  variant="outlined" fullWidth required>
+                            <FormControl variant="outlined" fullWidth required>
                                 <InputLabel id="genderId">Gender</InputLabel>
                                 <Select
                                     labelId="gender"
@@ -319,94 +291,100 @@ export const Patient = (props) => {
                             label="Diagnose with"
                             name="diagnoseWith"
                         />
+                        {<div className={classes.error}>{errors.diagnoseWith}</div>}
                     </Grid>
-                    <Grid item xs={12} sm={12}>
-                        <FormControl  variant="outlined" fullWidth required>
-                            <InputLabel id="demo-customized-select-label">Country</InputLabel>
-                            <Select
-                                labelId="country"
-                                name="country"
-                                id="country"
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                value={patient.country}
-                                label="Country">
-                                <MenuItem value="">
-                                    <em>Select</em>
-                                </MenuItem>
-                                {
-                                    countries.map((country) => {
-                                        return <MenuItem
-                                            value={country.id}
-                                            key={country.id}>
-                                            {country.label}
-                                        </MenuItem>
-                                    })
-                                }
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={12}>
-                        <FormControl  variant="outlined" fullWidth required>
-                            <InputLabel id="demo-customized-select-label">State</InputLabel>
-                            <Select
-                                labelId="state"
-                                name="state"
-                                id="state"
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                value={patient.state}
-                                label="State" required fullWidth>
-                                <MenuItem value="">
-                                    <em>Select</em>
-                                </MenuItem>
-                                {
-                                    states.map((state) => {
-                                        return <MenuItem
-                                            value={state.id}
-                                            key={state.id}>
-                                            {state.label}
-                                        </MenuItem>
-                                    })
-                                }
-                            </Select>
-                        </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={12}>
-                        <FormControl  variant="outlined" fullWidth required>
-                            <InputLabel id="demo-customized-select-label">City</InputLabel>
-                            <Select
-                                labelId="city"
-                                name="city"
-                                id="city"
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                value={patient.city}
-                                label="City">
-                                <MenuItem value="">
-                                    <em>Select</em>
-                                </MenuItem>
-                                {
-                                    cities.map((city) => {
-                                        return <MenuItem
-                                            value={city.id}
-                                            key={city.id}>
-                                            {city.label}
-                                        </MenuItem>
-                                    })
-                                }
-                            </Select>
-                        </FormControl>
+                    <Grid container spacing={2}>
+                        <Grid item xs={4} sm={4}>
+                            <FormControl variant="outlined" fullWidth required>
+                                <InputLabel id="demo-customized-select-label">Country</InputLabel>
+                                <Select
+                                    labelId="country"
+                                    name="country"
+                                    id="country"
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    value={patient.country}
+                                    label="Country">
+                                    <MenuItem value="">
+                                        <em>Select</em>
+                                    </MenuItem>
+                                    {
+                                        countries.map((country) => {
+                                            return <MenuItem
+                                                value={country.id}
+                                                key={country.id}>
+                                                {country.label}
+                                            </MenuItem>
+                                        })
+                                    }
+                                </Select>
+                            </FormControl>
+                            {<div className={classes.error}>{errors.country}</div>}
+                        </Grid>
+                        <Grid item xs={4} sm={4}>
+                            <FormControl variant="outlined" fullWidth required>
+                                <InputLabel id="demo-customized-select-label">State</InputLabel>
+                                <Select
+                                    labelId="state"
+                                    name="state"
+                                    id="state"
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    value={patient.state}
+                                    label="State" required fullWidth>
+                                    <MenuItem value="">
+                                        <em>Select</em>
+                                    </MenuItem>
+                                    {
+                                        states.map((state) => {
+                                            return <MenuItem
+                                                value={state.id}
+                                                key={state.id}>
+                                                {state.label}
+                                            </MenuItem>
+                                        })
+                                    }
+                                </Select>
+                            </FormControl>
+                            {<div className={classes.error}>{errors.state}</div>}
+                        </Grid>
+                        <Grid item xs={4} sm={4}>
+                            <FormControl variant="outlined" fullWidth required>
+                                <InputLabel id="demo-customized-select-label">City</InputLabel>
+                                <Select
+                                    labelId="city"
+                                    name="city"
+                                    id="city"
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    value={patient.city}
+                                    label="City">
+                                    <MenuItem value="">
+                                        <em>Select</em>
+                                    </MenuItem>
+                                    {
+                                        cities.map((city) => {
+                                            return <MenuItem
+                                                value={city.id}
+                                                key={city.id}>
+                                                {city.label}
+                                            </MenuItem>
+                                        })
+                                    }
+                                </Select>
+                            </FormControl>
+                            {<div className={classes.error}>{errors.city}</div>}
+                        </Grid>
                     </Grid>
                     <ButtonWithLoader
                         loading={loading}
                         type="button"
                         fullWidth
-                        style={{height: 40, marginTop:20}}
+                        style={{height: 40, marginTop: 20}}
                         variant="contained"
                         onClick={onSubmit}
                         color="primary">
-                        { patientId ?  "Update" : "Create"}
+                        {patientId ? "Update" : "Create"}
                     </ButtonWithLoader>
                 </form>
             </div>
