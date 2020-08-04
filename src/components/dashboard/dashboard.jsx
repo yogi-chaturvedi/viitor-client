@@ -50,12 +50,12 @@ const useStyles = makeStyles({
         },
         pageIcon: {
             padding: 10,
-            border: "1px solid #4CAF50",
             display: "inline-flex",
             justifyContent: "center",
             alignItems: "center",
             height: 40,
             width: 40,
+            borderRadius: 20,
             cursor: "pointer"
         },
         page: {
@@ -83,9 +83,16 @@ const useStyles = makeStyles({
             display: "flex",
             height: 40,
             marginRight: 20
+        },
+        emptyTable: {
+            textAlign: "center",
+            minHeight: 150,
+            justifyContent: "center",
+            alignItems: "center",
+            display: "flex",
+            color: "teal"
         }
     })
-;
 
 const InitialFilter = {
     sortBy: "firstName",
@@ -103,6 +110,7 @@ export default function Dashboard() {
 
     const [patients, setPatients] = useState([]);
     const [filter, setFilter] = useState(InitialFilter);
+    const [filteredData, setFilteredData] = useState([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -118,6 +126,31 @@ export default function Dashboard() {
         })
     }, []);
 
+    useEffect(() => {
+        // Apply filter
+        // 1. Query (Searching)
+        let filteredData = _.filter(patients, row => {
+            return (
+                _.includes(row.firstName.toUpperCase(), filter.query.toUpperCase()) ||
+                _.includes(row.lastName.toUpperCase(), filter.query.toUpperCase()) ||
+                _.includes(row.email.toUpperCase(), filter.query.toUpperCase())
+            );
+        });
+
+        // 2. Sorting and mode
+        const mode = filter.ascending ? "asc" : "desc";
+        filteredData = _.orderBy(filteredData, [item => {
+            return item[filter.sortBy].toString().toLowerCase();
+        }], [mode]);
+
+        setFilteredData(filteredData || []);
+    }, [patients, filter]);
+
+    const getActivePageData = () => {
+        const pagedData = _.chunk(filteredData, filter.itemsPerPage)[filter.page - 1];
+        return pagedData || [];
+    };
+
     const editPatient = (id) => {
         history.push(`/app/patient/${id}`);
     };
@@ -131,37 +164,16 @@ export default function Dashboard() {
         })
     };
 
-    const getFilteredData = () => {
-        // Query
-        let filteredData = _.filter(patients, row => {
-            return (
-                _.includes(row.firstName.toUpperCase(), filter.query.toUpperCase()) ||
-                _.includes(row.lastName.toUpperCase(), filter.query.toUpperCase()) ||
-                _.includes(row.email.toUpperCase(), filter.query.toUpperCase())
-            );
-        });
-
-        // Sorting
-        const mode = filter.ascending ? "asc" : "desc";
-        filteredData = _.orderBy(filteredData, [item => {
-            return item[filter.sortBy].toString().toLowerCase();
-        }], [mode]);
-
-        // Pagination
-        filteredData = _.chunk(filteredData, filter.itemsPerPage)[filter.page - 1];
-        return filteredData || [];
-    };
-
     const sort = (sortBy) => {
         if (filter.sortBy === sortBy) {
-            setFilter({...filter, sortBy, ascending: !filter.ascending});
+            setFilter({...filter, sortBy, ascending: !filter.ascending, page: 1});
         } else {
-            setFilter({...filter, sortBy, ascending: true});
+            setFilter({...filter, sortBy, ascending: true, page: 1});
         }
     };
 
     const nextPage = () => {
-        if (filter.page < patients.length / filter.itemsPerPage) {
+        if (filter.page < filteredData.length / filter.itemsPerPage) {
             setFilter({...filter, page: filter.page + 1});
         }
     };
@@ -173,7 +185,7 @@ export default function Dashboard() {
     };
 
     const searchChange = ({target: {value}}) => {
-        setFilter({...filter, query: value});
+        setFilter({...filter, query: value, page: 1});
     };
 
     const onItemsPerPageChange = ({target: {value}}) => {
@@ -183,7 +195,7 @@ export default function Dashboard() {
     const exportToCSV = () => {
         console.log("CLICKED");
         const header = ["Name", "Email", "Age", "Diagnose With", "Address"];
-        const data = _.map(patients, patient => {
+        const data = _.map(filteredData, patient => {
             const address = `${patient.city}-${patient.state} (${patient.country})`;
             return [`${patient.firstName} ${patient.lastName}`, patient.email, patient.age, patient.diagnoseWith, address];
         });
@@ -212,10 +224,9 @@ export default function Dashboard() {
                 </Typography>
                 <div className={classes.searchContainer}>
                     <InputBase
-                        className={classes.input}
                         onChange={searchChange}
-                        placeholder="Enter keywords..."
-                        inputProps={{'aria-label': 'Enter keywords...'}}
+                        placeholder="Enter name or email"
+                        inputProps={{'aria-label': 'Enter name or email'}}
                     />
                     <IconButton type="submit" className={classes.iconButton} aria-label="search">
                         <SearchIcon/>
@@ -226,7 +237,7 @@ export default function Dashboard() {
                 <Table className={classes.table} aria-label="simple table">
                     <TableHead>
                         <TableRow>
-                            <TableCell align="right">Action</TableCell>
+                            <TableCell align="center">Action</TableCell>
                             <FilterableCell title={"Name"}
                                             onClick={sort}
                                             field="firstName"
@@ -251,36 +262,44 @@ export default function Dashboard() {
                                             sortBy={filter.sortBy}
                                             ascending={filter.ascending}
                             />
-                            <TableCell align="right">Diagnose With</TableCell>
-                            <TableCell align="right">Address</TableCell>
+                            <TableCell align="left">Diagnose With</TableCell>
+                            <TableCell align="left">Address</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {getFilteredData().map((row) => (
+                        {getActivePageData().map((row) => (
                             <TableRow key={row.name}>
-                                <TableCell align="right">
+                                <TableCell align="center">
                                     <EditIcon fontSize="small" style={{color: "blue"}} className={classes.clickable}
                                               onClick={() => editPatient(row.id)}/>&nbsp;&nbsp;
                                     <DeleteIcon fontSize="small" style={{color: "red"}} className={classes.clickable}
                                                 onClick={() => deletePatient(row.id)}/>
                                 </TableCell>
-                                <TableCell align="right">{`${row.firstName} ${row.lastName}`}</TableCell>
-                                <TableCell align="right">{row.email}</TableCell>
-                                <TableCell align="right">{row.gender}</TableCell>
-                                <TableCell align="right">{row.age}</TableCell>
-                                <TableCell align="right">{row.diagnoseWith || "-"}</TableCell>
-                                <TableCell align="right">{`${row.city}, ${row.state}, ${row.country}`}</TableCell>
+                                <TableCell align="left">{`${row.firstName} ${row.lastName}`}</TableCell>
+                                <TableCell align="left">{row.email}</TableCell>
+                                <TableCell align="left">{row.gender}</TableCell>
+                                <TableCell align="left">{row.age}</TableCell>
+                                <TableCell align="left">{row.diagnoseWith || "-"}</TableCell>
+                                <TableCell align="left">{`${row.city}, ${row.state}, ${row.country}`}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+                {
+                    filteredData.length === 0 &&
+                    <div className={classes.emptyTable}>No result found</div>
+                }
             </TableWithLoader>
             <div className={classes.rootPaginationContainer}>
                 <Button variant="contained" color="primary" onClick={exportToCSV} className={classes.exportButton}>
                     Export to CSV
                 </Button>
                 <ItemsPerPage onChange={onItemsPerPageChange} itemsPerPage={filter.itemsPerPage}/>
-                <Pagination activePage={filter.page} next={nextPage} prev={prevPage}/>
+                <Pagination activePage={filter.page}
+                            next={nextPage}
+                            prev={prevPage}
+                            itemsPerPage={filter.itemsPerPage}
+                            totalItems={filteredData.length}/>
             </div>
         </Paper>
     );
@@ -288,7 +307,7 @@ export default function Dashboard() {
 
 const FilterableCell = ({title, onClick, sortBy, field, ascending}) => {
     const classes = useStyles();
-    return <TableCell align="right" onClick={() => onClick(field)} className={classes.clickable}>
+    return <TableCell align="left" onClick={() => onClick(field)} className={classes.clickable}>
         {title}
         {
             sortBy === field && <>
@@ -300,16 +319,18 @@ const FilterableCell = ({title, onClick, sortBy, field, ascending}) => {
     </TableCell>
 };
 
-const Pagination = ({activePage, prev, next}) => {
+const Pagination = ({activePage, prev, next, totalItems, itemsPerPage}) => {
     const classes = useStyles();
     return <div className={classes.paginationContainer}>
-        <span className={classes.pageIcon}>
-        <ChevronLeft onClick={prev}/>
-        </span>
+        <IconButton className={classes.pageIcon}
+                    disabled={activePage === 1}>
+            <ChevronLeft onClick={prev}/>
+        </IconButton>
         <span className={`${classes.pageIcon} ${classes.page}`}>{activePage}</span>
-        <span className={classes.pageIcon}>
-        <ChevronRight onClick={next}/>
-        </span>
+        <IconButton className={classes.pageIcon}
+                    disabled={activePage >= totalItems / itemsPerPage}>
+            <ChevronRight onClick={next}/>
+        </IconButton>
     </div>
 };
 
